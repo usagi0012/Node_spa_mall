@@ -21,57 +21,96 @@
 const express = require("express");
 const router = express.Router();
 
-const products = [
-  {
-    _id: 4,
-    title: "아이폰14",
-    content: "얼마사용하지 않은 제품",
-    author: "판매자",
-    password: "1234",
-    status: "FOR_SALE",
-    createdAt: "2023-10-19T04:09:42.059Z",
-  },
-  {
-    _id: 3,
-    title: "아이폰13 MINI",
-    content: "얼마사용하지 않은 제품",
-    author: "판매자",
-    password: "1231",
-    status: "FOR_SALE",
-    createdAt: "2023-10-17T05:10:42.059Z",
-  },
-  {
-    _id: 2,
-    title: "아이폰14 MAX",
-    content: "얼마사용하지 않은 제품",
-    author: "판매자",
-    password: "1212",
-    status: "FOR_SALE",
-    createdAt: "2023-10-17T04:09:42.059Z",
-  },
-  {
-    _id: 1,
-    title: "아이폰10 MAX",
-    content: "얼마사용하지 않은 제품",
-    author: "판매자",
-    password: "1111",
-    status: "FOR_SALE",
-    createdAt: "2023-10-15T04:09:42.059Z",
-  },
-];
+//상품 등록
+const Products = require("../schemas/products.schema");
+router.post("/products", async (req, res) => {
+  // if (req.body) {
+  //   return res.status(400).json({
+  //     errorMessage: "데이터 형식이 올바르지 않습니다.",
+  //   });
+  // }
+  const { id, title, content, author, password } = req.body;
+  const createdAt = Date.now();
+  const { status } = "FOR_SALE";
+  if (!id || !title || !password) {
+    return res
+      .status(400)
+      .json({ errorMessage: "데이터 형식이 올바르지 않습니다." });
+  }
+  const createdProducts = await Products.create({
+    id,
+    title,
+    content,
+    author,
+    password,
+    status,
+    createdAt,
+  });
+
+  res.json({ products: createdProducts });
+  // res.json({ message: "판매 상품을 등록하였습니다." });
+});
 
 //상품 목록 조회
-router.get("/products", (req, res) => {
-  res.status(200).json({ products });
+router.get("/products", async (req, res) => {
+  const products = await Products.find({});
+  //최신순으로 정렬
+  const sortedProducts = products.sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
+  const results = sortedProducts.map((product) => {
+    return {
+      id: product._id,
+      title: product.title,
+      author: product.author,
+      status: product.status,
+      createdAt: product.createdAt,
+    };
+  });
+  res.status(200).json({ products: results });
 });
 
 //상품 상세 조회
-router.get("/products/:productsId", (req, res) => {
+router.get("/products/:productsId", async (req, res) => {
   const { productsId } = req.params;
-  const [data] = products.filter(
-    (products) => products._id === Number(productsId)
-  );
-  res.json({ data });
+  if (!productsId) {
+    return res
+      .status(400)
+      .json({ errorMessage: "데이터 형식이 올바르지 않습니다." });
+  }
+  const products = await Products.find({});
+  const data = products.filter((product) => product.id === Number(productsId));
+  if (data.length === 0) {
+    return res
+      .status(404)
+      .json({ errorMessage: "상품 조회에 실패하였습니다." });
+  }
+  const results = data.map((product) => {
+    return {
+      id: product._id,
+      title: product.title,
+      content: product.content,
+      author: product.author,
+      status: product.status,
+      createdAt: product.createdAt,
+    };
+  });
+  res.json({ results });
 });
 
+//상품 정보 수정
+router.put("/products/:productsId", async (req, res) => {
+  const { productsId } = req.params;
+  const { quantity } = req.body;
+
+  const updateProduct = await Products.find({ id: Number(productsId) });
+  if (updateProduct.length > 0) {
+    await Products.updateOne(
+      { id: Number(productsId) },
+      { $set: { quantity } }
+    );
+  }
+
+  res.status(200).json({ result: "success" });
+});
 module.exports = router;
