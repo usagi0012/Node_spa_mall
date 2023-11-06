@@ -40,8 +40,10 @@ router.post("/products", async (req, res) => {
     password,
   });
 
-  res.json({ products: createdProducts });
-  // res.json({ message: "판매 상품을 등록하였습니다." });
+  res.json(
+    { products: createdProducts },
+    { message: "판매 상품을 등록하였습니다." }
+  );
 });
 
 //상품 목록 조회

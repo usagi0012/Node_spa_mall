@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
-
-const mongoStr =
-  "mongodb+srv://usagi0012:dntkrl1218@usagi0012.qgznxfs.mongodb.net/?retryWrites=true&w=majority";
+require("dotenv").config();
 
 const connect = () => {
   mongoose
-    .connect(mongoStr)
+    .connect(process.env.MONGO_STR)
     .then(() => console.log("connected"))
     .catch((err) => console.log(`failed. ${err}`));
 };
