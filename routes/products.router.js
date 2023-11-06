@@ -1,10 +1,24 @@
 /*
-2. 상품 목록 조회 API
-    - 상품 목록은 작성 날짜를 기준으로 **내림차순(최신순)** 정렬하기
-5. 상품 삭제 API
-    - 비밀번호를 **request**에서 전달받기
-    - 수정할 상품과 비밀번호 일치 여부를 확인한 후, 동일할 때만 글이 **삭제**되게 하기
-    - 선택한 상품이 존재하지 않을 경우, “상품 조회에 실패하였습니다." 메시지 반환하기
+등록할 때 형식 
+  {
+    "title": "아이폰 11 MAX",
+    "content": "얼마사용하지 않은 제품",
+    "author": "판매자",
+    "password": 1111
+  }
+
+수정할때 형식
+  {
+    "title": "아이폰 11 MAX",
+    "content": "얼마사용하지 않은 제품",
+    "password": 1111,
+    "status": "SOLD_OUT"
+  }
+
+삭제할 때 형식
+  {
+    "password": 1111
+  }
 */
 
 const express = require("express");
@@ -17,7 +31,7 @@ router.post("/products", async (req, res) => {
   if (!title || !password) {
     return res
       .status(400)
-      .json({ errorMessage: "데이터 형식이 올바르지 않습니다." });
+      .json({ Message: "데이터 형식이 올바르지 않습니다." });
   }
   const createdProducts = await Products.create({
     title,
@@ -55,14 +69,12 @@ router.get("/products/:productsId", async (req, res) => {
   if (!productsId) {
     return res
       .status(400)
-      .json({ errorMessage: "데이터 형식이 올바르지 않습니다." });
+      .json({ Message: "데이터 형식이 올바르지 않습니다." });
   }
   const products = await Products.find({});
   const data = products.filter((product) => product._id == productsId);
   if (data.length === 0) {
-    return res
-      .status(404)
-      .json({ errorMessage: "상품 조회에 실패하였습니다." });
+    return res.status(404).json({ Message: "상품 조회에 실패하였습니다." });
   }
   const results = data.map((product) => {
     return {
@@ -96,9 +108,35 @@ router.put("/products/:productsId", async (req, res) => {
     }
     await Products.updateOne(
       { _id: productsId },
-      { $set: { title, author, password, status } }
+      { $set: { title, content, password, status } }
     );
-    res.status(200).json({ result: "상품정보를 수정하였습니다." });
+    res.status(200).json({ Message: "상품정보를 수정하였습니다." });
+  }
+});
+
+//상품 제거
+router.delete("/products/:productsId", async (req, res) => {
+  const { productsId } = req.params;
+  const { password } = req.body;
+
+  const deleteProduct = await Products.find({ _id: productsId });
+  if (!productsId || !password) {
+    return res
+      .status(400)
+      .json({ Message: "데이터 형식이 올바르지 않습니다." });
+  }
+  if (deleteProduct.length == 0) {
+    return res.status(404).json({ Message: "상품 조회에 실패하였습니다." });
+  }
+
+  if (deleteProduct.length > 0) {
+    if (deleteProduct[0].password !== password) {
+      return res
+        .status(401)
+        .json({ Message: "상품을 삭제할 권한이 존재하지 않습니다." });
+    }
+    await Products.deleteOne({ _id: productsId });
+    res.status(200).json({ Message: "상품을 삭제하였습니다." });
   }
 });
 
